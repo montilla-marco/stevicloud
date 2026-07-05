@@ -1,0 +1,181 @@
+---
+# ════════════════════════════════════════════════════════════════════════════
+# common role — applied to every node (control plane + workers)
+# Replaces: 01-setup-hosts.sh · 02-setup-kernel.sh · 03-setup-cri.sh · 04-kube-components.sh
+# ════════════════════════════════════════════════════════════════════════════
+
+# ── /etc/hosts (01-setup-hosts.sh) ──────────────────────────────────────────
+- name: Register cluster nodes in /etc/hosts
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '.*{{ hostvars[item].ansible_hostname }}$'
+    line: '{{ hostvars[item].node_ip }} {{ hostvars[item].ansible_hostname }}'
+    state: present
+  loop: "{{ groups['k8s_cluster'] }}"
+
+# ── Kernel prerequisites (02-setup-kernel.sh) ───────────────────────────────
+- name: Persist required kernel modules
+  ansible.builtin.copy:
+    dest: /etc/modules-load.d/k8s.conf
+    content: |
+      overlay
+      br_netfilter
+
+- name: Load overlay module
+  community.general.modprobe:
+    name: overlay
+    state: present
+
+- name: Load br_netfilter module
+  community.general.modprobe:
+    name: br_netfilter
+    state: present
+
+- name: Configure sysctl for Kubernetes networking
+  ansible.posix.sysctl:
+    name: '{{ item.key }}'
+    value: '{{ item.value }}'
+    sysctl_file: /etc/sysctl.d/k8s.conf
+    state: present
+    reload: true
+  loop:
+    - { key: 'net.bridge.bridge-nf-call-iptables', value: '1' }
+    - { key: 'net.bridge.bridge-nf-call-ip6tables', value: '1' }
+    - { key: 'net.ipv4.ip_forward', value: '1' }
+
+# ── Disable swap (kubelet refuses to start if swap is on) ────────────────────
+- name: Disable swap immediately
+  ansible.builtin.command: swapoff -a
+  changed_when: false
+  failed_when: false
+
+- name: Remove swap entries from fstab
+  ansible.builtin.replace:
+    path: /etc/fstab
+    regexp: '^([^#].*\bswap\b.*)$'
+    replace: '# \1'
+
+- name: Mask zram swap service to survive reboots
+  ansible.builtin.systemd:
+    name: systemd-zram-setup@zram0.service
+    state: stopped
+    enabled: false
+    masked: true
+  failed_when: false
+
+# ── containerd (03-setup-cri.sh) ─────────────────────────────────────────────
+- name: Install containerd and prerequisites
+  ansible.builtin.apt:
+    name:
+      - containerd
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg
+    state: present
+    update_cache: true
+
+- name: Create containerd config directory
+  ansible.builtin.file:
+    path: /etc/containerd
+    state: directory
+    mode: '0755'
+
+- name: Generate default containerd config
+  ansible.builtin.shell: containerd config default > /etc/containerd/config.toml
+  args:
+    creates: /etc/containerd/config.toml
+
+# SystemdCgroup must be true when kubelet uses systemd cgroup driver
+- name: Enable SystemdCgroup in containerd
+  ansible.builtin.replace:
+    path: /etc/containerd/config.toml
+    regexp: 'SystemdCgroup = false'
+    replace: 'SystemdCgroup = true'
+  notify: Restart containerd
+
+# K8s 1.32 uses pause:3.10 — match any existing version to make the regex idempotent
+- name: Set pause image to 3.10
+  ansible.builtin.replace:
+    path: /etc/containerd/config.toml
+    regexp: 'sandbox_image = "registry\.k8s\.io/pause:[^"]*"'
+    replace: 'sandbox_image = "registry.k8s.io/pause:3.10"'
+  notify: Restart containerd
+
+- name: Enable and start containerd
+  ansible.builtin.systemd:
+    name: containerd
+    enabled: true
+    state: started
+
+# ── Kubernetes components (04-kube-components.sh) ────────────────────────────
+- name: Create apt keyrings directory
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+
+- name: Add Kubernetes apt signing key
+  ansible.builtin.shell: |
+    curl -fsSL https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_version }}/deb/Release.key \
+      | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+  args:
+    creates: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+- name: Add Kubernetes apt repository
+  ansible.builtin.apt_repository:
+    repo: >-
+      deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg]
+      https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_version }}/deb/ /
+    filename: kubernetes
+    state: present
+
+- name: Install kubeadm, kubelet, kubectl, kubernetes-cni
+  ansible.builtin.apt:
+    name:
+      - kubelet
+      - kubeadm
+      - kubectl
+      - kubernetes-cni
+    state: present
+    update_cache: true
+
+# Prevent unattended upgrades from breaking a running cluster
+- name: Hold Kubernetes packages at installed version
+  ansible.builtin.dpkg_selections:
+    name: '{{ item }}'
+    selection: hold
+  loop:
+    - kubelet
+    - kubeadm
+    - kubectl
+
+- name: Download crictl
+  ansible.builtin.get_url:
+    url: https://github.com/kubernetes-sigs/cri-tools/releases/download/v1.30.0/crictl-v1.30.0-linux-arm64.tar.gz
+    dest: /tmp/crictl.tar.gz
+    mode: '0644'
+  when: ansible_architecture == "aarch64"
+
+- name: Extract crictl
+  ansible.builtin.unarchive:
+    src: /tmp/crictl.tar.gz
+    dest: /usr/local/bin
+    remote_src: true
+  when: ansible_architecture == "aarch64"
+
+- name: Configure crictl to use containerd socket
+  ansible.builtin.shell: >
+    crictl config
+    --set runtime-endpoint=unix:///run/containerd/containerd.sock
+    --set image-endpoint=unix:///run/containerd/containerd.sock
+  args:
+    creates: /etc/crictl.yaml
+
+# node_ip is the private-network IP passed from the Vagrantfile host_vars.
+# Without this, kubelet advertises the NAT IP and nodes can't reach each other.
+- name: Tell kubelet to advertise node IP and allow swap
+  ansible.builtin.copy:
+    dest: /etc/default/kubelet
+    content: "KUBELET_EXTRA_ARGS='--node-ip={{ node_ip }} --fail-swap-on=false'\n"
+  notify: Restart kubelet

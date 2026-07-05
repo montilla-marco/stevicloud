@@ -1,0 +1,23 @@
+---
+# ════════════════════════════════════════════════════════════════════════════
+# worker role — runs on all k8s-worker-nodeN machines
+# Reads the join command written to localhost by the control_plane role
+# ════════════════════════════════════════════════════════════════════════════
+
+# Idempotency guard: kubelet.conf only exists after a successful join
+- name: Check if node already joined the cluster
+  ansible.builtin.stat:
+    path: /etc/kubernetes/kubelet.conf
+  register: kubelet_conf
+
+- name: Copy join command from local machine to worker
+  ansible.builtin.copy:
+    src: /tmp/k8s-join-command.sh
+    dest: /tmp/k8s-join-command.sh
+    mode: '0755'
+  when: not kubelet_conf.stat.exists
+
+- name: Join cluster
+  ansible.builtin.command: bash /tmp/k8s-join-command.sh
+  when: not kubelet_conf.stat.exists
+  changed_when: true

@@ -1,0 +1,64 @@
+spring:
+  application:
+    name: product-catalog
+
+server:
+  port: 8080
+
+# ── OpenTelemetry ────────────────────────────────────────────────────────────
+# Traces and metrics are pushed to the OTel Collector running in the cluster.
+# The Collector forwards traces to Tempo and metrics to Prometheus.
+# [Majors] Ch.4: "Structured telemetry data shipped to a central collector
+# is the foundation of a debuggable distributed system."
+#
+# Local dev: set OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 and
+# run the collector with docker-compose (future Episode 5 tooling).
+otel:
+  exporter:
+    otlp:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector.monitoring.svc.cluster.local:4318}
+      protocol: http/protobuf
+  resource:
+    attributes:
+      service.name: ${spring.application.name}
+      service.version: "@project.version@"
+      deployment.environment: ${DEPLOYMENT_ENV:local}
+
+# ── Actuator / Prometheus ────────────────────────────────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus, metrics
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+# ── OpenAPI / Swagger UI ─────────────────────────────────────────────────────
+# Disabled by default. Enabled per-profile:
+#   local → application-local.yaml  (swagger-ui at /swagger-ui.html)
+#   prod  → application-prod.yaml   (stays disabled)
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+# ── Logging ──────────────────────────────────────────────────────────────────
+# JSON format so Loki can parse structured fields from container stdout.
+# [Majors] Ch.6: key=value structured logs are the minimum; JSON is better
+# because Loki's LogQL can filter on arbitrary fields without regex.
+logging:
+  structured:
+    format:
+      console: json
+  level:
+    root: INFO
+    org.stevidigital: DEBUG

@@ -1,0 +1,6 @@
+---
+# Install before first run:
+#   ansible-galaxy collection install -r ansible/requirements.yml
+collections:
+  - name: ansible.posix       # sysctl module
+  - name: community.general   # modprobe module

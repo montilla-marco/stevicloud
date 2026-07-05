@@ -1,0 +1,2 @@
+---
+cluster_user: "{{ ansible_user | regex_replace('@.*$', '') }}"

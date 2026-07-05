@@ -1,0 +1,50 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "defaultBase": "main",
+  "plugins": [],
+  "namedInputs": {
+    "default": [
+      "{projectRoot}/**/*",
+      "sharedGlobals"
+    ],
+    "sharedGlobals": [
+      "{workspaceRoot}/nx.json"
+    ],
+    "javaFiles": [
+      "{projectRoot}/src/**/*.java",
+      "{projectRoot}/src/**/*.kt",
+      "{projectRoot}/build.gradle.kts",
+      "{workspaceRoot}/build.gradle.kts",
+      "{workspaceRoot}/settings.gradle.kts",
+      "{workspaceRoot}/gradle.properties"
+    ],
+    "typeScriptFiles": [
+      "{projectRoot}/src/**/*.ts",
+      "{projectRoot}/tsconfig*.json",
+      "{workspaceRoot}/tsconfig.base.json"
+    ]
+  },
+  "targetDefaults": {
+    "build": {
+      "cache": true,
+      "dependsOn": [
+        "^build"
+      ],
+      "inputs": [
+        "default",
+        "^default"
+      ]
+    },
+    "test": {
+      "cache": true,
+      "inputs": [
+        "default",
+        "^default"
+      ]
+    },
+    "lint": {
+      "cache": true
+    }
+  },
+  "analytics": true
+}

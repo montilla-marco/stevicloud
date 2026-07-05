@@ -1,0 +1,26 @@
+{
+  "name": "shared-contracts",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "packages/shared-contracts/src",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": ["typeScriptFiles"],
+      "outputs": ["{workspaceRoot}/dist/packages/shared-contracts"],
+      "options": {
+        "command": "npm run build",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm run lint",
+        "cwd": "{projectRoot}"
+      }
+    }
+  },
+  "tags": ["scope:shared", "lang:typescript", "type:lib"]
+}

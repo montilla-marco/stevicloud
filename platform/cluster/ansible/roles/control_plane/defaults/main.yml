@@ -1,0 +1,6 @@
+---
+kubernetes_version: "1.32"
+pod_network_cidr: "10.244.0.0/16"
+service_cidr: "10.96.0.0/12"
+# Strip @machine suffix from OrbStack's ansible_user (e.g. "marcomontilla@k8s-control-plane" → "marcomontilla")
+cluster_user: "{{ ansible_user | regex_replace('@.*$', '') }}"

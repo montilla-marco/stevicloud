@@ -1,0 +1,36 @@
+---
+# node_ip is set here once per host and reused across all plays.
+# OrbStack machines have a single routable interface — ansible_default_ipv4.address
+# is the IP used for inter-node Kubernetes traffic and for kubectl from the Mac.
+
+# ── Play 1: Common configuration on every node ──────────────────────────────
+- name: Configure all cluster nodes
+  hosts: k8s_cluster
+  become: true
+  pre_tasks:
+    - name: Set node_ip from primary interface
+      ansible.builtin.set_fact:
+        node_ip: "{{ ansible_default_ipv4.address }}"
+  roles:
+    - common
+
+# ── Play 2: Bootstrap the control plane ─────────────────────────────────────
+- name: Initialize Kubernetes control plane
+  hosts: control_plane
+  become: true
+  roles:
+    - control_plane
+
+# ── Play 3: Join workers ─────────────────────────────────────────────────────
+- name: Join worker nodes to the cluster
+  hosts: workers
+  become: true
+  roles:
+    - worker
+
+# ── Play 4: GitOps layer ─────────────────────────────────────────────────────
+- name: Install ArgoCD
+  hosts: control_plane
+  become: true
+  roles:
+    - argocd

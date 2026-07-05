@@ -1,0 +1,1203 @@
+<!-- stevidigital Platform — C4 Architecture Diagrams -->
+<title>stevidigital Platform — C4 Architecture</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+/* ─── Design Tokens ──────────────────────────────────────────── */
+:root {
+  --bg:       #0C0E19;
+  --sf:       #131625;
+  --sf2:      #1A1D30;
+  --sf3:      #22263B;
+  --bd:       #262A40;
+  --bd2:      #363B58;
+  --tx:       #D8DCF0;
+  --mu:       #5A607C;
+  --mu2:      #404566;
+
+  --java:     #FB923C;
+  --ts:       #60A5FA;
+  --infra:    #34D399;
+  --data:     #C084FC;
+  --msg:      #F87171;
+  --person:   #FBBF24;
+  --sys:      #818CF8;
+  --ext:      #94A3B8;
+
+  --java-bg:  rgba(251,146,60,.07);
+  --ts-bg:    rgba(96,165,250,.07);
+  --infra-bg: rgba(52,211,153,.07);
+  --data-bg:  rgba(192,132,252,.07);
+  --msg-bg:   rgba(248,113,113,.07);
+  --person-bg:rgba(251,191,36,.07);
+  --sys-bg:   rgba(129,140,248,.12);
+  --ext-bg:   rgba(148,163,184,.05);
+
+  --r:        4px;
+  --mono:     'JetBrains Mono','Cascadia Code','Fira Code',ui-monospace,monospace;
+  --sans:     system-ui,-apple-system,sans-serif;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg:  #F0F1F8;
+    --sf:  #FFFFFF;
+    --sf2: #F6F7FB;
+    --sf3: #EDEFF8;
+    --bd:  #D8DAEA;
+    --bd2: #B8BBCE;
+    --tx:  #14162A;
+    --mu:  #6A6F90;
+    --mu2: #A8ADBF;
+  }
+}
+:root[data-theme="dark"]  { --bg:#0C0E19;--sf:#131625;--sf2:#1A1D30;--sf3:#22263B;--bd:#262A40;--bd2:#363B58;--tx:#D8DCF0;--mu:#5A607C;--mu2:#404566; }
+:root[data-theme="light"] { --bg:#F0F1F8;--sf:#FFFFFF;--sf2:#F6F7FB;--sf3:#EDEFF8;--bd:#D8DAEA;--bd2:#B8BBCE;--tx:#14162A;--mu:#6A6F90;--mu2:#A8ADBF; }
+
+/* ─── Reset & Base ───────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; }
+body {
+  background: var(--bg);
+  color: var(--tx);
+  font-family: var(--sans);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+a { color: var(--sys); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code {
+  font-family: var(--mono);
+  font-size: 0.8em;
+  background: var(--sf3);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+/* ─── Layout ─────────────────────────────────────────────────── */
+.page { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; }
+
+/* ─── Nav ────────────────────────────────────────────────────── */
+.top-nav {
+  border-bottom: 1px solid var(--bd);
+  background: var(--sf);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.top-nav-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  height: 48px;
+}
+.nav-logo {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--sys);
+  white-space: nowrap;
+}
+.nav-links {
+  display: flex;
+  gap: 1.25rem;
+  list-style: none;
+  flex-wrap: wrap;
+}
+.nav-links a {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--mu);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.nav-links a:hover { color: var(--tx); }
+
+/* ─── Page Header ────────────────────────────────────────────── */
+.page-header {
+  padding: 3.5rem 0 2rem;
+  border-bottom: 1px solid var(--bd);
+  margin-bottom: 3rem;
+}
+.page-header h1 {
+  font-family: var(--mono);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--tx);
+  margin-bottom: 0.5rem;
+  text-wrap: balance;
+}
+.page-header .sub {
+  font-size: 0.9rem;
+  color: var(--mu);
+  max-width: 600px;
+}
+.page-header .stack-chips {
+  margin-top: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.chip {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 3px;
+  border: 1px solid currentColor;
+  opacity: 0.85;
+}
+.chip-java   { color: var(--java);   background: var(--java-bg); }
+.chip-ts     { color: var(--ts);     background: var(--ts-bg); }
+.chip-infra  { color: var(--infra);  background: var(--infra-bg); }
+.chip-data   { color: var(--data);   background: var(--data-bg); }
+.chip-msg    { color: var(--msg);    background: var(--msg-bg); }
+
+/* ─── Section ────────────────────────────────────────────────── */
+.c4-section {
+  margin-bottom: 4rem;
+}
+.section-header {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.level-badge {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 3px;
+  background: var(--sys-bg);
+  color: var(--sys);
+  border: 1px solid rgba(129,140,248,.25);
+  white-space: nowrap;
+}
+.section-header h2 {
+  font-family: var(--mono);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--tx);
+}
+.section-desc {
+  font-size: 0.85rem;
+  color: var(--mu);
+  margin-top: 0.25rem;
+  margin-bottom: 1.5rem;
+}
+
+/* ─── C4 Box ──────────────────────────────────────────────────── */
+.c4-box {
+  background: var(--sf);
+  border: 1px solid var(--bd);
+  border-radius: var(--r);
+  padding: 0.85rem 1rem;
+  position: relative;
+  transition: border-color 0.15s;
+}
+.c4-box:hover { border-color: var(--bd2); }
+.stereotype {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  color: var(--mu);
+  letter-spacing: 0.06em;
+  display: block;
+  margin-bottom: 2px;
+}
+.box-name {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--tx);
+  display: block;
+  margin-bottom: 4px;
+}
+.box-tech {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 2px;
+  display: inline-block;
+  margin-bottom: 6px;
+}
+.box-desc {
+  font-size: 0.72rem;
+  color: var(--mu);
+  line-height: 1.5;
+}
+
+/* Box color variants */
+.box-person  { background: var(--person-bg); border-left: 3px solid var(--person); }
+.box-sys     { background: var(--sys-bg);    border-left: 3px solid var(--sys);    border-width: 1px 1px 1px 3px; }
+.box-ext     { background: var(--ext-bg);    border-left: 3px solid var(--ext);    border-style: dashed; border-left-style: solid; }
+.box-java    { background: var(--java-bg);   border-left: 3px solid var(--java); }
+.box-ts      { background: var(--ts-bg);     border-left: 3px solid var(--ts); }
+.box-infra   { background: var(--infra-bg);  border-left: 3px solid var(--infra); }
+.box-data    { background: var(--data-bg);   border-left: 3px solid var(--data); }
+.box-msg     { background: var(--msg-bg);    border-left: 3px solid var(--msg); }
+
+.tech-java  { background: var(--java-bg);   color: var(--java); }
+.tech-ts    { background: var(--ts-bg);     color: var(--ts); }
+.tech-infra { background: var(--infra-bg);  color: var(--infra); }
+.tech-data  { background: var(--data-bg);   color: var(--data); }
+.tech-msg   { background: var(--msg-bg);    color: var(--msg); }
+.tech-sys   { background: var(--sys-bg);    color: var(--sys); }
+
+/* ─── Diagram Stage (SVG overlay host) ───────────────────────── */
+.diagram-stage {
+  position: relative;
+}
+.conn-svg {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+
+/* ─── L1 Layout ──────────────────────────────────────────────── */
+.l1-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr 1fr;
+  gap: 2rem;
+  align-items: center;
+  padding: 1.5rem;
+  background: var(--sf);
+  border: 1px solid var(--bd);
+  border-radius: var(--r);
+  min-height: 260px;
+}
+.l1-persons, .l1-externals {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.l1-persons { align-items: flex-end; }
+.l1-externals { align-items: flex-start; }
+.l1-system { display: flex; justify-content: center; }
+.l1-system .c4-box { width: 100%; }
+
+/* ─── L2 Layout ──────────────────────────────────────────────── */
+.l2-outer {
+  background: var(--sf);
+  border: 1px solid var(--bd);
+  border-radius: var(--r);
+  padding: 1.25rem;
+}
+.l2-browser-row {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 1.5rem;
+}
+.l2-browser-row .c4-box { width: 220px; }
+.k8s-boundary {
+  border: 2px dashed var(--bd2);
+  border-radius: 6px;
+  padding: 1.25rem;
+  position: relative;
+  background: var(--sf2);
+}
+.k8s-label {
+  position: absolute;
+  top: -10px;
+  left: 12px;
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--infra);
+  background: var(--sf2);
+  padding: 0 6px;
+}
+.l2-apps-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.l2-kafka-row {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+.l2-kafka-row .c4-box { width: 100%; text-align: center; }
+.l2-dbs-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.l2-infra-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+.l2-lib-note {
+  margin-top: 0.75rem;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--mu);
+  padding: 6px 10px;
+  background: var(--sf3);
+  border: 1px dashed var(--bd);
+  border-radius: var(--r);
+}
+
+/* ─── L3 Layout (Hexagonal Layers) ──────────────────────────── */
+.hex-diagram {
+  background: var(--sf);
+  border: 1px solid var(--bd);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+.hex-diagram-inner {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+.hex-layer {
+  padding: 1.25rem;
+}
+.hex-layer + .hex-layer { border-left: 1px solid var(--bd); }
+.hex-layer-label {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--bd);
+}
+.hex-domain-label { color: var(--sys); }
+.hex-app-label    { color: var(--ts); }
+.hex-infra-label  { color: var(--infra); }
+
+.component-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.component-item {
+  background: var(--sf2);
+  border: 1px solid var(--bd);
+  border-radius: var(--r);
+  padding: 0.5rem 0.75rem;
+  position: relative;
+}
+.component-item.is-domain  { border-left: 3px solid var(--sys); }
+.component-item.is-app     { border-left: 3px solid var(--ts); }
+.component-item.is-port    { border-left: 3px solid var(--mu2); border-left-style: dashed; }
+.component-item.is-adapter { border-left: 3px solid var(--infra); }
+.comp-name {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--tx);
+}
+.comp-tag {
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--mu);
+  margin-left: 6px;
+}
+.comp-desc {
+  font-size: 0.68rem;
+  color: var(--mu);
+  margin-top: 2px;
+}
+.hex-footer {
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--bd);
+  background: var(--sf2);
+  font-size: 0.72rem;
+  color: var(--mu);
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+.hex-footer strong { color: var(--tx); font-family: var(--mono); font-size: 0.7rem; }
+
+/* ─── Platform Overview Table ────────────────────────────────── */
+.platform-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+.platform-card {
+  background: var(--sf);
+  border: 1px solid var(--bd);
+  border-radius: var(--r);
+  padding: 1rem;
+}
+.platform-card-title {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--mu);
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.platform-card-title::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.pc-infra .platform-card-title::before { background: var(--infra); }
+.pc-obs .platform-card-title::before { background: var(--data); }
+.pc-gitops .platform-card-title::before { background: var(--sys); }
+.pc-apps .platform-card-title::before { background: var(--java); }
+.platform-kv {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.2rem 0.75rem;
+  font-size: 0.75rem;
+}
+.pk { color: var(--mu); white-space: nowrap; }
+.pv { color: var(--tx); font-family: var(--mono); font-size: 0.72rem; }
+
+/* ─── Episode Timeline ───────────────────────────────────────── */
+.episode-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--bd);
+  border-radius: var(--r);
+  overflow: hidden;
+  background: var(--sf);
+}
+.episode-item {
+  display: grid;
+  grid-template-columns: 60px 1fr auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--bd);
+}
+.episode-item:last-child { border-bottom: none; }
+.ep-num {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--mu);
+  text-align: center;
+}
+.ep-title {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--tx);
+}
+.ep-desc { font-size: 0.72rem; color: var(--mu); }
+.ep-status {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  padding: 2px 7px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+.ep-done    { background: var(--infra-bg); color: var(--infra); border: 1px solid rgba(52,211,153,.3); }
+.ep-planned { background: var(--msg-bg);   color: var(--mu);    border: 1px solid var(--bd); }
+
+/* ─── Legend ─────────────────────────────────────────────────── */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 2rem;
+  padding: 0.75rem 1rem;
+  background: var(--sf);
+  border: 1px solid var(--bd);
+  border-radius: var(--r);
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  color: var(--mu);
+}
+.legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* ─── Divider ────────────────────────────────────────────────── */
+.section-divider {
+  border: none;
+  border-top: 1px solid var(--bd);
+  margin: 3rem 0;
+}
+
+/* ─── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 760px) {
+  .l1-grid { grid-template-columns: 1fr; }
+  .l1-persons, .l1-externals { align-items: stretch; }
+  .l2-apps-row { grid-template-columns: 1fr; }
+  .l2-dbs-row { grid-template-columns: 1fr; }
+  .l2-infra-row { grid-template-columns: 1fr; }
+  .hex-diagram-inner { grid-template-columns: 1fr; }
+  .hex-layer + .hex-layer { border-left: none; border-top: 1px solid var(--bd); }
+  .platform-grid { grid-template-columns: 1fr; }
+  .episode-item { grid-template-columns: 40px 1fr; }
+  .ep-status { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+</style>
+
+<!-- ─── NAV ─────────────────────────────────────────────────── -->
+<nav class="top-nav" role="navigation">
+  <div class="top-nav-inner">
+    <span class="nav-logo">stevidigital/platform</span>
+    <ul class="nav-links">
+      <li><a href="#l1">L1 · Context</a></li>
+      <li><a href="#l2">L2 · Containers</a></li>
+      <li><a href="#l3">L3 · Components</a></li>
+      <li><a href="#platform">Platform</a></li>
+      <li><a href="#episodes">Episodes</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- ─── PAGE ─────────────────────────────────────────────────── -->
+<main class="page">
+
+  <header class="page-header">
+    <h1>stevidigital Platform — C4 Architecture</h1>
+    <p class="sub">System context, container, and component views of a DDD / Hexagonal microservices platform running on Kubernetes. Built iteratively via the Episode series.</p>
+    <div class="stack-chips">
+      <span class="chip chip-java">Java 25 / Spring Boot 4.1</span>
+      <span class="chip chip-ts">TypeScript / NestJS 11</span>
+      <span class="chip chip-infra">Nx 23 · Gradle 9.6.1 · pnpm 11</span>
+      <span class="chip chip-infra">Kubernetes · OrbStack · ArgoCD</span>
+      <span class="chip chip-data">LGTM Observability Stack</span>
+      <span class="chip chip-msg">Kafka (Episode 2+)</span>
+    </div>
+  </header>
+
+  <!-- Color Legend -->
+  <div class="legend" role="note" aria-label="Color legend">
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--person)"></div> Person</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--sys)"></div> Main System</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--ext)"></div> External System</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--java)"></div> Java / Spring Boot</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--ts)"></div> TypeScript / NestJS</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--infra)"></div> Infrastructure / K8s</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--data)"></div> Data Store</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--msg)"></div> Messaging / Kafka</div>
+  </div>
+
+  <!-- ───────────────────────────────────────────────────────────── -->
+  <!-- L1 · SYSTEM CONTEXT                                          -->
+  <!-- ───────────────────────────────────────────────────────────── -->
+  <section class="c4-section" id="l1">
+    <div class="section-header">
+      <span class="level-badge">C4 · L1</span>
+      <div>
+        <h2>System Context</h2>
+        <p class="section-desc">Who uses the stevidigital platform, and which external systems does it depend on?</p>
+      </div>
+    </div>
+
+    <div class="diagram-stage" id="l1-stage">
+      <div class="l1-grid">
+
+        <div class="l1-persons">
+          <div class="c4-box box-person" data-node="customer">
+            <span class="stereotype">«Person»</span>
+            <span class="box-name">Customer</span>
+            <span class="box-desc">End user browsing the catalog, placing orders, and tracking deliveries via the web or mobile app.</span>
+          </div>
+          <div class="c4-box box-person" data-node="admin">
+            <span class="stereotype">«Person»</span>
+            <span class="box-name">Product Admin</span>
+            <span class="box-desc">Internal staff managing the product catalog — creating, publishing, and discontinuing products.</span>
+          </div>
+        </div>
+
+        <div class="l1-system">
+          <div class="c4-box box-sys" data-node="stevidigital">
+            <span class="stereotype">«System»</span>
+            <span class="box-name">stevidigital Platform</span>
+            <span class="box-tech tech-infra">Nx 23 Polyglot Monorepo</span>
+            <span class="box-desc">
+              A modular e-commerce platform built as bounded contexts (DDD) over a shared event bus.
+              Each Episode adds one production-quality vertical slice: ProductCatalog, Pricing, OMS, Billing.
+            </span>
+          </div>
+        </div>
+
+        <div class="l1-externals">
+          <div class="c4-box box-ext" data-node="stripe">
+            <span class="stereotype">«External System»</span>
+            <span class="box-name">Stripe</span>
+            <span class="box-tech tech-sys">REST / HTTPS</span>
+            <span class="box-desc">Payment gateway. Handles card processing, refunds, and webhooks. (Episode 4)</span>
+          </div>
+          <div class="c4-box box-ext" data-node="sendgrid">
+            <span class="stereotype">«External System»</span>
+            <span class="box-name">SendGrid</span>
+            <span class="box-tech tech-sys">SMTP / API</span>
+            <span class="box-desc">Transactional email. Order confirmations, receipts, shipping notifications. (Episode 4)</span>
+          </div>
+        </div>
+
+      </div>
+      <svg class="conn-svg" id="l1-svg" aria-hidden="true"></svg>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  <!-- ───────────────────────────────────────────────────────────── -->
+  <!-- L2 · CONTAINER DIAGRAM                                       -->
+  <!-- ───────────────────────────────────────────────────────────── -->
+  <section class="c4-section" id="l2">
+    <div class="section-header">
+      <span class="level-badge">C4 · L2</span>
+      <div>
+        <h2>Container Diagram</h2>
+        <p class="section-desc">What major deployable units make up the platform, and how do they communicate at runtime?</p>
+      </div>
+    </div>
+
+    <div class="diagram-stage" id="l2-stage">
+      <div class="l2-outer">
+
+        <div class="l2-browser-row">
+          <div class="c4-box box-person" data-node="browser">
+            <span class="stereotype">«Person»</span>
+            <span class="box-name">Web Browser</span>
+            <span class="box-desc">Customer or Admin UI</span>
+          </div>
+        </div>
+
+        <div class="k8s-boundary">
+          <span class="k8s-label">Kubernetes Cluster — OrbStack · Apple Silicon · 3 VMs</span>
+
+          <div class="l2-apps-row">
+            <div class="c4-box box-java" data-node="product-catalog">
+              <span class="stereotype">«Container · API»</span>
+              <span class="box-name">product-catalog</span>
+              <span class="box-tech tech-java">Spring Boot 4.1 · Java 25</span>
+              <span class="box-desc">ProductCatalog BC. REST API for product lifecycle. DDD + Hexagonal. Port :8080.</span>
+            </div>
+            <div class="c4-box box-ts" data-node="oms">
+              <span class="stereotype">«Container · API»</span>
+              <span class="box-name">oms</span>
+              <span class="box-tech tech-ts">NestJS 11 · Node 22</span>
+              <span class="box-desc">Order Management BC. Creates orders, publishes OrderPlaced/OrderConfirmed events. (Episode 3)</span>
+            </div>
+            <div class="c4-box box-ts" data-node="billing">
+              <span class="stereotype">«Container · API»</span>
+              <span class="box-name">billing</span>
+              <span class="box-tech tech-ts">NestJS 11 · Node 22</span>
+              <span class="box-desc">Billing BC. Generates invoices and initiates payments via Stripe. (Episode 4)</span>
+            </div>
+          </div>
+
+          <div class="l2-kafka-row">
+            <div class="c4-box box-msg" data-node="kafka">
+              <span class="stereotype">«Container · Message Bus»</span>
+              <span class="box-name">Apache Kafka</span>
+              <span class="box-tech tech-msg">Strimzi Operator · KRaft mode</span>
+              <span class="box-desc">Distributed event log for cross-BC domain event integration. Topics: stevidigital.product-catalog.events, .oms.events, .billing.events. Partitioned by aggregate ID for causal ordering. (Episode 2+)</span>
+            </div>
+          </div>
+
+          <div class="l2-dbs-row">
+            <div class="c4-box box-data" data-node="db-pc">
+              <span class="stereotype">«Container · Database»</span>
+              <span class="box-name">PostgreSQL-pc</span>
+              <span class="box-tech tech-data">PostgreSQL 16</span>
+              <span class="box-desc">Product catalog persistence. In-memory (Episode 1), PostgreSQL (Episode 2).</span>
+            </div>
+            <div class="c4-box box-data" data-node="db-oms">
+              <span class="stereotype">«Container · Database»</span>
+              <span class="box-name">PostgreSQL-oms</span>
+              <span class="box-tech tech-data">PostgreSQL 16</span>
+              <span class="box-desc">Order management persistence. One DB per bounded context — no shared schema.</span>
+            </div>
+            <div class="c4-box box-data" data-node="db-billing">
+              <span class="stereotype">«Container · Database»</span>
+              <span class="box-name">PostgreSQL-billing</span>
+              <span class="box-tech tech-data">PostgreSQL 16</span>
+              <span class="box-desc">Billing and invoice persistence. Includes Transactional Outbox table for Kafka delivery.</span>
+            </div>
+          </div>
+
+          <div class="l2-infra-row">
+            <div class="c4-box box-infra" data-node="zot">
+              <span class="stereotype">«Container · Registry»</span>
+              <span class="box-name">Zot OCI Registry</span>
+              <span class="box-tech tech-infra">project-zot · :30500</span>
+              <span class="box-desc">Container image registry. ArgoCD pulls images from here. Deployed via Helm + ArgoCD.</span>
+            </div>
+            <div class="c4-box box-infra" data-node="observability">
+              <span class="stereotype">«Container · Observability»</span>
+              <span class="box-name">LGTM Stack</span>
+              <span class="box-tech tech-infra">Loki · Grafana · Tempo · Mimir</span>
+              <span class="box-desc">
+                OTel Collector (OTLP :4317/4318) → Prometheus metrics, Loki logs, Tempo traces.
+                Grafana at k8s-control-plane.orb.local:30300. Correlated: trace_id on every log line.
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="l2-lib-note" role="note">
+          <strong>shared-contracts</strong> (TypeScript lib · <code>packages/shared-contracts</code>) — Published Language types shared by OMS and Billing via pnpm <code>workspace:*</code>. Not deployed — compile-time only.
+          &nbsp;|&nbsp;
+          <strong>ArgoCD</strong> manages all container deployments declaratively from Git. No <code>kubectl apply</code> in production.
+        </div>
+      </div>
+      <svg class="conn-svg" id="l2-svg" aria-hidden="true"></svg>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  <!-- ───────────────────────────────────────────────────────────── -->
+  <!-- L3 · COMPONENT DIAGRAM — product-catalog                    -->
+  <!-- ───────────────────────────────────────────────────────────── -->
+  <section class="c4-section" id="l3">
+    <div class="section-header">
+      <span class="level-badge">C4 · L3</span>
+      <div>
+        <h2>Component Diagram — <code>product-catalog</code></h2>
+        <p class="section-desc">How is the ProductCatalog bounded context structured internally? Hexagonal Architecture (Ports &amp; Adapters) — domain has zero framework imports.</p>
+      </div>
+    </div>
+
+    <div class="hex-diagram">
+      <div class="hex-diagram-inner">
+
+        <!-- LEFT COLUMN: Domain + Application -->
+        <div>
+          <div class="hex-layer">
+            <div class="hex-layer-label hex-domain-label">Domain Layer — Zero Framework Imports</div>
+            <div class="component-list">
+              <div class="component-item is-domain">
+                <span class="comp-name">Product</span>
+                <span class="comp-tag">Aggregate Root</span>
+                <p class="comp-desc">Enforces all product invariants. Lifecycle: DRAFT → PUBLISHED → DISCONTINUED. Registers domain events on each transition.</p>
+              </div>
+              <div class="component-item is-domain">
+                <span class="comp-name">ProductId · ProductName · Category · ProductStatus</span>
+                <span class="comp-tag">Value Objects</span>
+                <p class="comp-desc">Immutable, self-validating. Invalid states unrepresentable at the type level — no nulls escape domain construction.</p>
+              </div>
+              <div class="component-item is-domain">
+                <span class="comp-name">ProductCreated · ProductPublished · ProductDiscontinued</span>
+                <span class="comp-tag">Domain Events</span>
+                <p class="comp-desc">Past-tense, immutable facts. Carry eventId (UUID) for idempotency. Drained from aggregate by application layer after save.</p>
+              </div>
+              <div class="component-item is-domain">
+                <span class="comp-name">DomainEvent</span>
+                <span class="comp-tag">Marker Interface</span>
+                <p class="comp-desc">eventId(): String, occurredOn(): Instant. The only contract events must satisfy.</p>
+              </div>
+              <div class="component-item is-port">
+                <span class="comp-name">ProductRepository</span>
+                <span class="comp-tag">Port · «interface»</span>
+                <p class="comp-desc">Driven port. save(Product), findById(ProductId), findAll(). Defined in domain — implemented in infrastructure.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="hex-layer" style="border-top: 1px solid var(--bd);">
+            <div class="hex-layer-label hex-app-label">Application Layer — Orchestration Only</div>
+            <div class="component-list">
+              <div class="component-item is-app">
+                <span class="comp-name">CreateProductUseCase</span>
+                <span class="comp-tag">Command Handler</span>
+                <p class="comp-desc">Calls Product.create(), repository.save(), then drains and publishes domain events via DomainEventPublisher port.</p>
+              </div>
+              <div class="component-item is-app">
+                <span class="comp-name">PublishProductUseCase</span>
+                <span class="comp-tag">Command Handler</span>
+                <p class="comp-desc">Loads aggregate, calls product.publish() (throws if not DRAFT), saves, drains events.</p>
+              </div>
+              <div class="component-item is-app">
+                <span class="comp-name">GetProductUseCase</span>
+                <span class="comp-tag">Query Handler</span>
+                <p class="comp-desc">Read-only path. Returns Product by ID or all products. No events raised.</p>
+              </div>
+              <div class="component-item is-port">
+                <span class="comp-name">DomainEventPublisher</span>
+                <span class="comp-tag">Port · «interface»</span>
+                <p class="comp-desc">publish(DomainEvent). Driving port used by use cases. Stage 1: logging. Stage 2: Kafka.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN: Infrastructure Adapters -->
+        <div>
+          <div class="hex-layer">
+            <div class="hex-layer-label hex-infra-label">Infrastructure — Driving Adapters (in)</div>
+            <div class="component-list">
+              <div class="component-item is-adapter">
+                <span class="comp-name">ProductController</span>
+                <span class="comp-tag">Adapter · Spring MVC</span>
+                <p class="comp-desc">
+                  REST endpoints — POST /api/v1/products, GET /api/v1/products/{id}, PUT /api/v1/products/{id}/publish.
+                  Translates HTTP ↔ Commands/Queries. No domain logic.
+                </p>
+              </div>
+              <div class="component-item is-adapter">
+                <span class="comp-name">CreateProductRequest · ProductResponse</span>
+                <span class="comp-tag">DTOs · Spring MVC</span>
+                <p class="comp-desc">Jackson-serialized transfer objects. Not part of the domain model. Response hides internal aggregate structure.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="hex-layer" style="border-top: 1px solid var(--bd);">
+            <div class="hex-layer-label hex-infra-label">Infrastructure — Driven Adapters (out)</div>
+            <div class="component-list">
+              <div class="component-item is-adapter">
+                <span class="comp-name">InMemoryProductRepository</span>
+                <span class="comp-tag">Adapter · Stage 1 → PostgresProductRepository (Stage 2)</span>
+                <p class="comp-desc">Implements ProductRepository port using a ConcurrentHashMap. Zero-dependency, swappable without touching domain or use cases. Replaced by JPA adapter in Episode 2.</p>
+              </div>
+              <div class="component-item is-adapter">
+                <span class="comp-name">LoggingDomainEventPublisher</span>
+                <span class="comp-tag">Adapter · Stage 1 → KafkaDomainEventPublisher (Episode 2)</span>
+                <p class="comp-desc">Implements DomainEventPublisher port using SLF4J. Events printed as structured JSON log lines. Replaced by Kafka adapter in Episode 2 without modifying any use case.</p>
+              </div>
+              <div class="component-item is-adapter">
+                <span class="comp-name">ApplicationConfig</span>
+                <span class="comp-tag">Spring @Configuration</span>
+                <p class="comp-desc">Wires port interfaces to adapter implementations. The only place Spring is aware of which adapters are active. Constructor injection only.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="hex-footer">
+        <span><strong>Rule</strong> — domain/ imports nothing outside its own package. Verified by running tests without Spring context.</span>
+        <span><strong>Test strategy</strong> — ProductTest.java: plain JUnit, no mocks, sub-second. CreateProductUseCaseTest: use case + InMemory adapter, no Spring.</span>
+        <span><strong>Next</strong> — Episode 2 swaps InMemory→Postgres and Logging→Kafka adapters. Zero domain code changes.</span>
+      </div>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  <!-- ───────────────────────────────────────────────────────────── -->
+  <!-- PLATFORM OPERATIONAL CONTEXT                                 -->
+  <!-- ───────────────────────────────────────────────────────────── -->
+  <section class="c4-section" id="platform">
+    <div class="section-header">
+      <span class="level-badge">Platform</span>
+      <div>
+        <h2>Operational Context</h2>
+        <p class="section-desc">The full platform stack: how the cluster runs, how apps are deployed, and how they are observed.</p>
+      </div>
+    </div>
+
+    <div class="platform-grid">
+
+      <div class="platform-card pc-infra">
+        <div class="platform-card-title">Kubernetes Cluster</div>
+        <div class="platform-kv">
+          <span class="pk">Nodes</span>      <span class="pv">1 control-plane + 2 workers</span>
+          <span class="pk">Runtime</span>    <span class="pv">OrbStack VMs — Apple Silicon (arm64)</span>
+          <span class="pk">CNI</span>        <span class="pv">Flannel v0.26.7 · host-gw mode</span>
+          <span class="pk">Ingress</span>    <span class="pv">Istio (planned) · NodePort (dev)</span>
+          <span class="pk">Storage</span>    <span class="pv">local-path-provisioner (dev)</span>
+          <span class="pk">Bootstrap</span>  <span class="pv">kubeadm · Ansible · platform/cluster/</span>
+        </div>
+      </div>
+
+      <div class="platform-card pc-gitops">
+        <div class="platform-card-title">GitOps — ArgoCD</div>
+        <div class="platform-kv">
+          <span class="pk">Registry</span>   <span class="pv">Zot OCI Registry · worker-node2:30500</span>
+          <span class="pk">Build</span>      <span class="pv">build-push-k8s-local.sh → orb SSH → docker push</span>
+          <span class="pk">Deploy</span>     <span class="pv">ArgoCD watches platform/apps/ Git dir</span>
+          <span class="pk">Apps</span>       <span class="pv">kube-prometheus-stack · loki-stack · tempo · otel</span>
+          <span class="pk">UI</span>         <span class="pv">k8s-control-plane.orb.local (NodePort)</span>
+          <span class="pk">Pattern</span>    <span class="pv">Push image tag → Git commit → ArgoCD sync</span>
+        </div>
+      </div>
+
+      <div class="platform-card pc-obs">
+        <div class="platform-card-title">Observability — LGTM</div>
+        <div class="platform-kv">
+          <span class="pk">Metrics</span>    <span class="pv">Prometheus → kube-prometheus-stack</span>
+          <span class="pk">Logs</span>       <span class="pv">Loki ← container stdout (Promtail)</span>
+          <span class="pk">Traces</span>     <span class="pv">Tempo ← OTel Collector (gRPC :4317)</span>
+          <span class="pk">Dashboards</span> <span class="pv">Grafana :30300 · datasources: Prom/Loki/Tempo</span>
+          <span class="pk">Correlation</span><span class="pv">trace_id on every log line via OTel auto-instr.</span>
+          <span class="pk">OTLP</span>       <span class="pv">otel-collector.monitoring.svc:4317 (gRPC)</span>
+        </div>
+      </div>
+
+      <div class="platform-card pc-apps">
+        <div class="platform-card-title">Monorepo — Nx 23</div>
+        <div class="platform-kv">
+          <span class="pk">Root</span>       <span class="pv">stevidigital-platform/</span>
+          <span class="pk">Java</span>       <span class="pv">Gradle 9.6.1 · Java 25 (SDKMAN Temurin)</span>
+          <span class="pk">TS</span>         <span class="pv">pnpm 11 · Node 22 (nvm) · NestJS 11</span>
+          <span class="pk">Graph</span>      <span class="pv">nx graph · nx affected --target=test</span>
+          <span class="pk">Cache</span>      <span class="pv">node_modules/.cache/nx · nx reset to clear</span>
+          <span class="pk">Tags</span>       <span class="pv">lang:java|ts · type:app|lib · bc:*</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  <!-- ───────────────────────────────────────────────────────────── -->
+  <!-- EPISODE TIMELINE                                             -->
+  <!-- ───────────────────────────────────────────────────────────── -->
+  <section class="c4-section" id="episodes">
+    <div class="section-header">
+      <span class="level-badge">Series</span>
+      <div>
+        <h2>Episode Roadmap</h2>
+        <p class="section-desc">Each Episode is one vertical slice — a bounded context fully implemented from domain model to REST adapter, production-quality from day one. [Ford-BEA] Ch.3.</p>
+      </div>
+    </div>
+
+    <div class="episode-list">
+      <div class="episode-item">
+        <div class="ep-num">E-01</div>
+        <div>
+          <div class="ep-title">ProductCatalog BC — DDD + Hexagonal</div>
+          <div class="ep-desc">Product aggregate, 3 value objects, 3 domain events, 3 use cases, REST adapter, 11 tests. In-memory + log-based adapters.</div>
+        </div>
+        <span class="ep-status ep-done">✓ Done</span>
+      </div>
+      <div class="episode-item">
+        <div class="ep-num">E-02</div>
+        <div>
+          <div class="ep-title">Pricing BC — Kafka + Transactional Outbox</div>
+          <div class="ep-desc">Strimzi Kafka on cluster. KafkaDomainEventPublisher replaces Logging adapter. PostgresProductRepository replaces InMemory. Pricing BC subscribes to ProductPublished. EIP: Idempotent Consumer, Dead Letter Queue.</div>
+        </div>
+        <span class="ep-status ep-planned">Planned</span>
+      </div>
+      <div class="episode-item">
+        <div class="ep-num">E-03</div>
+        <div>
+          <div class="ep-title">Inventory BC — MongoDB + Polyglot Persistence</div>
+          <div class="ep-desc">Warehouse &amp; inventory management. Variable schema per SKU type (electronics→serial, food→expiry, clothing→size/color). Nested location documents (warehouse→aisle→shelf→bin). Stock movements as append-only events. Consumes ProductPublished to initialize InventoryItem. Polyglot persistence: MongoDB alongside the PostgreSQL services.</div>
+        </div>
+        <span class="ep-status ep-planned">Planned</span>
+      </div>
+      <div class="episode-item">
+        <div class="ep-num">E-04</div>
+        <div>
+          <div class="ep-title">OMS — NestJS + Event-Sourced Order</div>
+          <div class="ep-desc">Order Management BC in NestJS. Consumes ProductPublished + InventoryReserved. OrderPlaced / OrderConfirmed events. Saga / Process Manager pattern for multi-step order fulfillment.</div>
+        </div>
+        <span class="ep-status ep-planned">Planned</span>
+      </div>
+      <div class="episode-item">
+        <div class="ep-num">E-05</div>
+        <div>
+          <div class="ep-title">Billing — Stripe Integration + Invoice BC</div>
+          <div class="ep-desc">Billing BC in NestJS. Consumes OrderConfirmed. Stripe payment initiation (WireMock in tests). PDF invoice generation. Idempotent payment handling.</div>
+        </div>
+        <span class="ep-status ep-planned">Planned</span>
+      </div>
+      <div class="episode-item">
+        <div class="ep-num">E-06</div>
+        <div>
+          <div class="ep-title">Platform Hardening — CI + Istio mTLS + Keycloak OIDC</div>
+          <div class="ep-desc">GitHub Actions CI with nx affected on PR. Service mesh (Istio) with mutual TLS. Keycloak OIDC/JWT across all services. ArchUnit boundary enforcement. Testcontainers for PostgreSQL + Kafka + MongoDB in integration tests.</div>
+        </div>
+        <span class="ep-status ep-planned">Planned</span>
+      </div>
+    </div>
+  </section>
+
+  <footer style="padding:2rem 0 3rem; font-size:0.72rem; color:var(--mu); border-top:1px solid var(--bd); margin-top:2rem;">
+    <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
+      <span>stevidigital-platform · C4 Model [Simon Brown] · Generated 2025-07-04</span>
+      <span>DDD [Evans 2003] · Hexagonal [Cockburn 2005] · DDIA [Kleppmann 2017] · EIP [Hohpe &amp; Woolf 2003]</span>
+    </div>
+  </footer>
+
+</main>
+
+<!-- ─── SVG Connection Renderer ──────────────────────────────── -->
+<script>
+(function () {
+  const MUTED = getComputedStyle(document.documentElement).getPropertyValue('--mu2').trim() || '#404566';
+  const MUTED_LABEL = getComputedStyle(document.documentElement).getPropertyValue('--mu').trim() || '#5A607C';
+
+  function makeMarker(svgEl, id, color) {
+    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    const m = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+    m.setAttribute('id', id);
+    m.setAttribute('markerWidth', '8');
+    m.setAttribute('markerHeight', '6');
+    m.setAttribute('refX', '7');
+    m.setAttribute('refY', '3');
+    m.setAttribute('orient', 'auto');
+    const p = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    p.setAttribute('points', '0 0, 8 3, 0 6');
+    p.setAttribute('fill', color || '#404566');
+    m.appendChild(p);
+    defs.appendChild(m);
+    svgEl.appendChild(defs);
+    return id;
+  }
+
+  function edgePoint(fromRect, toRect, cRect) {
+    const fx = fromRect.left + fromRect.width / 2 - cRect.left;
+    const fy = fromRect.top + fromRect.height / 2 - cRect.top;
+    const tx = toRect.left + toRect.width / 2 - cRect.left;
+    const ty = toRect.top + toRect.height / 2 - cRect.top;
+
+    const dx = tx - fx, dy = ty - fy;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    if (len < 1) return null;
+
+    // Exit point: trim by half-size of fromBox in direction of target
+    const hw = fromRect.width / 2 + 6;
+    const hh = fromRect.height / 2 + 6;
+    const angleFrom = Math.atan2(dy, dx);
+    const trimFrom = Math.min(Math.abs(hw / Math.cos(angleFrom)), Math.abs(hh / Math.sin(angleFrom)));
+    const x1 = fx + (dx / len) * Math.min(trimFrom, len * 0.45);
+    const y1 = fy + (dy / len) * Math.min(trimFrom, len * 0.45);
+
+    // Entry point: trim by half-size of toBox in opposite direction
+    const hw2 = toRect.width / 2 + 8;
+    const hh2 = toRect.height / 2 + 8;
+    const angleTo = Math.atan2(-dy, -dx);
+    const trimTo = Math.min(Math.abs(hw2 / Math.cos(angleTo)), Math.abs(hh2 / Math.sin(angleTo)));
+    const x2 = tx - (dx / len) * Math.min(trimTo, len * 0.45);
+    const y2 = ty - (dy / len) * Math.min(trimTo, len * 0.45);
+
+    return { x1, y1, x2, y2, mx: (x1 + x2) / 2, my: (y1 + y2) / 2 };
+  }
+
+  function drawEdge(svg, markerId, ep, edge) {
+    if (!ep) return;
+    const { x1, y1, x2, y2, mx, my } = ep;
+
+    // Bezier control points
+    const cx1 = x1 + (x2 - x1) * 0.35;
+    const cy1 = y1 + (y2 - y1) * 0.1;
+    const cx2 = x1 + (x2 - x1) * 0.65;
+    const cy2 = y1 + (y2 - y1) * 0.9;
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', `M ${x1} ${y1} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${x2} ${y2}`);
+    path.setAttribute('stroke', edge.color || '#363B58');
+    path.setAttribute('stroke-width', edge.width || '1.5');
+    path.setAttribute('fill', 'none');
+    path.setAttribute('marker-end', `url(#${markerId})`);
+    if (edge.dashed) path.setAttribute('stroke-dasharray', '5,3');
+    svg.appendChild(path);
+
+    if (edge.label) {
+      // Background rect for label readability
+      const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      const tw = edge.label.length * 5.5 + 8;
+      bg.setAttribute('x', mx - tw / 2);
+      bg.setAttribute('y', my - 14);
+      bg.setAttribute('width', tw);
+      bg.setAttribute('height', 13);
+      bg.setAttribute('rx', '2');
+      bg.setAttribute('fill', getComputedStyle(document.documentElement).getPropertyValue('--sf').trim() || '#131625');
+      bg.setAttribute('opacity', '0.85');
+      svg.appendChild(bg);
+
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('x', mx);
+      text.setAttribute('y', my - 4);
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('font-size', '9');
+      text.setAttribute('font-family', 'monospace');
+      text.setAttribute('fill', MUTED_LABEL);
+      text.textContent = edge.label;
+      svg.appendChild(text);
+    }
+  }
+
+  function initDiagram(stageId, svgId, edges) {
+    const stage = document.getElementById(stageId);
+    const svg = document.getElementById(svgId);
+    if (!stage || !svg) return;
+
+    const markerId = 'arr-' + stageId;
+    makeMarker(svg, markerId, '#363B58');
+
+    const cRect = stage.getBoundingClientRect();
+    edges.forEach(edge => {
+      const fromEl = stage.querySelector(`[data-node="${edge.from}"]`);
+      const toEl = stage.querySelector(`[data-node="${edge.to}"]`);
+      if (!fromEl || !toEl) return;
+      const ep = edgePoint(fromEl.getBoundingClientRect(), toEl.getBoundingClientRect(), cRect);
+      drawEdge(svg, markerId, ep, edge);
+    });
+  }
+
+  // Wait for fonts + layout to settle
+  if (document.fonts) {
+    document.fonts.ready.then(init);
+  } else {
+    window.addEventListener('load', init);
+  }
+
+  function init() {
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() {
+
+        // ── L1 connections ──────────────────────────────────────────
+        initDiagram('l1-stage', 'l1-svg', [
+          { from: 'customer',     to: 'stevidigital', label: 'uses · HTTPS' },
+          { from: 'admin',        to: 'stevidigital', label: 'manages · HTTPS' },
+          { from: 'stevidigital', to: 'stripe',       label: 'payments · REST', dashed: true },
+          { from: 'stevidigital', to: 'sendgrid',     label: 'email · SMTP', dashed: true },
+        ]);
+
+        // ── L2 connections ──────────────────────────────────────────
+        initDiagram('l2-stage', 'l2-svg', [
+          { from: 'browser',          to: 'product-catalog', label: 'HTTPS :8080' },
+          { from: 'browser',          to: 'oms',             label: 'HTTPS :3001', dashed: true },
+          { from: 'product-catalog',  to: 'kafka',           label: 'publish events' },
+          { from: 'oms',              to: 'kafka',           label: 'publish/consume' },
+          { from: 'billing',          to: 'kafka',           label: 'consume' },
+          { from: 'product-catalog',  to: 'db-pc',           label: 'reads/writes' },
+          { from: 'oms',              to: 'db-oms',          label: 'reads/writes' },
+          { from: 'billing',          to: 'db-billing',      label: 'reads/writes' },
+          { from: 'product-catalog',  to: 'observability',   label: 'OTLP :4317', dashed: true },
+        ]);
+
+      });
+    });
+  }
+})();
+</script>

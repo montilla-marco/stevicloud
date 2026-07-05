@@ -1,0 +1,36 @@
+{
+  "name": "product-catalog",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/product-catalog/src",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": ["javaFiles"],
+      "outputs": ["{workspaceRoot}/apps/product-catalog/build"],
+      "options": {
+        "command": "./gradlew :product-catalog:bootJar",
+        "cwd": "{workspaceRoot}"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": ["javaFiles"],
+      "outputs": ["{workspaceRoot}/apps/product-catalog/build/reports/tests"],
+      "options": {
+        "command": "./gradlew :product-catalog:test",
+        "cwd": "{workspaceRoot}"
+      }
+    },
+    "classes": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "./gradlew :product-catalog:classes",
+        "cwd": "{workspaceRoot}"
+      }
+    }
+  },
+  "tags": ["scope:catalog", "lang:java", "type:app", "bc:product-catalog"]
+}

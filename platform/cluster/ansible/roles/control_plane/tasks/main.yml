@@ -1,0 +1,199 @@
+---
+# ════════════════════════════════════════════════════════════════════════════
+# control_plane role — runs only on k8s-control-plane
+# Replaces: 05-deploy-controlplane.sh
+# ════════════════════════════════════════════════════════════════════════════
+
+- name: Check if control plane already initialized
+  ansible.builtin.stat:
+    path: /etc/kubernetes/admin.conf
+  register: kubeadm_init_done
+
+# Detect partial init: admin.conf exists but cluster API doesn't work (RBAC not bootstrapped).
+- name: Check if kubelet is active
+  ansible.builtin.command: systemctl is-active kubelet
+  register: kubelet_active
+  failed_when: false
+  changed_when: false
+  when: kubeadm_init_done.stat.exists
+
+- name: Verify cluster API is functional (not just started)
+  ansible.builtin.command: kubectl get nodes
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  register: cluster_api_ok
+  failed_when: false
+  changed_when: false
+  when: kubeadm_init_done.stat.exists and (kubelet_active.rc | default(1)) == 0
+
+- name: Reset stale partial kubeadm init
+  ansible.builtin.command: kubeadm reset -f
+  when: >
+    kubeadm_init_done.stat.exists and
+    ((kubelet_active.rc | default(1)) != 0 or
+     (cluster_api_ok.rc | default(1)) != 0)
+  changed_when: true
+
+- name: Re-check init state after potential reset
+  ansible.builtin.stat:
+    path: /etc/kubernetes/admin.conf
+  register: kubeadm_init_done
+
+- name: Pull correct pause:3.10 image
+  ansible.builtin.command: ctr images pull registry.k8s.io/pause:3.10
+  when: not kubeadm_init_done.stat.exists
+  changed_when: true
+  failed_when: false
+
+- name: Initialize Kubernetes control plane
+  ansible.builtin.command: >
+    kubeadm init
+    --pod-network-cidr={{ pod_network_cidr }}
+    --service-cidr={{ service_cidr }}
+    --apiserver-advertise-address={{ node_ip }}
+    --apiserver-cert-extra-sans={{ node_ip }},127.0.0.1,k8s-control-plane,k8s-control-plane.orb.local,kubernetes,kubernetes.default,kubernetes.default.svc
+    --ignore-preflight-errors=Swap
+  when: not kubeadm_init_done.stat.exists
+  changed_when: true
+
+- name: Create .kube directory for cluster user
+  ansible.builtin.file:
+    path: /home/{{ cluster_user }}/.kube
+    state: directory
+    owner: "{{ cluster_user }}"
+    group: "{{ cluster_user }}"
+    mode: '0700'
+
+- name: Copy admin kubeconfig for cluster user
+  ansible.builtin.copy:
+    src: /etc/kubernetes/admin.conf
+    dest: /home/{{ cluster_user }}/.kube/config
+    owner: "{{ cluster_user }}"
+    group: "{{ cluster_user }}"
+    mode: '0600'
+    remote_src: true
+
+# OrbStack kernel (Apple Virtualization Framework) does not allow containers to write
+# /proc/sys/net/netfilter/nf_conntrack_max. Setting maxPerCore=0 and min=0 tells
+# kube-proxy to skip conntrack size management entirely.
+- name: Patch kube-proxy ConfigMap to disable conntrack sysctl management
+  ansible.builtin.shell: |
+    kubectl get cm kube-proxy -n kube-system -o json | python3 -c "
+    import json, sys
+    obj = json.load(sys.stdin)
+    cfg = obj['data']['config.conf']
+    cfg = cfg.replace('  maxPerCore: null\n', '  maxPerCore: 0\n')
+    cfg = cfg.replace('  min: null\n', '  min: 0\n')
+    obj['data']['config.conf'] = cfg
+    print(json.dumps(obj))
+    " | kubectl apply -f -
+  environment:
+    KUBECONFIG: /home/{{ cluster_user }}/.kube/config
+  become_user: "{{ cluster_user }}"
+  changed_when: true
+  when: not kubeadm_init_done.stat.exists
+
+- name: Restart kube-proxy after conntrack patch
+  ansible.builtin.command: kubectl rollout restart ds/kube-proxy -n kube-system
+  environment:
+    KUBECONFIG: /home/{{ cluster_user }}/.kube/config
+  become_user: "{{ cluster_user }}"
+  changed_when: true
+  when: not kubeadm_init_done.stat.exists
+
+- name: Wait for kube-proxy to be Ready after restart
+  ansible.builtin.command: >
+    kubectl rollout status ds/kube-proxy -n kube-system --timeout=60s
+  environment:
+    KUBECONFIG: /home/{{ cluster_user }}/.kube/config
+  become_user: "{{ cluster_user }}"
+  changed_when: false
+  when: not kubeadm_init_done.stat.exists
+
+# Flannel v0.26.7 pinned — master branch (v0.28.x) has a missing /opt/bin/install-conf
+# binary in the arm64 image. v0.26.7 uses a direct sh -c copy and works on OrbStack.
+# host-gw backend: all OrbStack VMs are on the same L2 subnet, no VXLAN overlay needed.
+- name: Download Flannel v0.26.7 manifest
+  ansible.builtin.get_url:
+    url: https://raw.githubusercontent.com/flannel-io/flannel/v0.26.7/Documentation/kube-flannel.yml
+    dest: /tmp/kube-flannel.yml
+    mode: '0644'
+    force: true
+  when: not kubeadm_init_done.stat.exists
+
+- name: Patch Flannel manifest to use host-gw backend
+  ansible.builtin.replace:
+    path: /tmp/kube-flannel.yml
+    regexp: '"vxlan"'
+    replace: '"host-gw"'
+  when: not kubeadm_init_done.stat.exists
+
+- name: Install Flannel CNI
+  ansible.builtin.command: kubectl apply -f /tmp/kube-flannel.yml
+  become_user: "{{ cluster_user }}"
+  environment:
+    KUBECONFIG: /home/{{ cluster_user }}/.kube/config
+  when: not kubeadm_init_done.stat.exists
+  changed_when: true
+
+- name: Wait for Flannel DaemonSet to be Ready
+  ansible.builtin.command: >
+    kubectl rollout status ds/kube-flannel-ds -n kube-flannel --timeout=120s
+  become_user: "{{ cluster_user }}"
+  environment:
+    KUBECONFIG: /home/{{ cluster_user }}/.kube/config
+  changed_when: false
+  when: not kubeadm_init_done.stat.exists
+
+- name: Wait for all kube-system pods to be Ready
+  ansible.builtin.command: >
+    kubectl wait --for=condition=Ready pods --all
+    -n kube-system --timeout=180s
+  become_user: "{{ cluster_user }}"
+  environment:
+    KUBECONFIG: /home/{{ cluster_user }}/.kube/config
+  changed_when: false
+  when: not kubeadm_init_done.stat.exists
+
+# local-path-provisioner gives every namespace a dynamic StorageClass with no manual PV management.
+# It becomes the default StorageClass so PVCs without explicit storageClassName are fulfilled automatically.
+- name: Install local-path-provisioner
+  ansible.builtin.command: >
+    kubectl apply -f
+    https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml
+  become_user: "{{ cluster_user }}"
+  environment:
+    KUBECONFIG: /home/{{ cluster_user }}/.kube/config
+  when: not kubeadm_init_done.stat.exists
+  changed_when: true
+
+- name: Set local-path as default StorageClass
+  ansible.builtin.command: >
+    kubectl patch storageclass local-path -p
+    '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+  become_user: "{{ cluster_user }}"
+  environment:
+    KUBECONFIG: /home/{{ cluster_user }}/.kube/config
+  when: not kubeadm_init_done.stat.exists
+  changed_when: true
+
+# A new token is always generated so re-running the play can add more workers
+- name: Generate worker join command
+  ansible.builtin.command: kubeadm token create --print-join-command
+  register: join_command
+  changed_when: false
+
+- name: Save join command on local machine
+  ansible.builtin.copy:
+    content: "{{ join_command.stdout }}\n"
+    dest: /tmp/k8s-join-command.sh
+    mode: '0755'
+  delegate_to: localhost
+  become: false
+
+- name: Fetch kubeconfig to local machine
+  ansible.builtin.fetch:
+    src: /home/{{ cluster_user }}/.kube/config
+    dest: '{{ playbook_dir }}/../kubeconfig'
+    flat: true
+  become_user: "{{ cluster_user }}"

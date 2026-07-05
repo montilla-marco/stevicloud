@@ -1,0 +1,37 @@
+{
+  "name": "oms",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/oms/src",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": ["typeScriptFiles"],
+      "outputs": ["{workspaceRoot}/dist/apps/oms"],
+      "options": {
+        "command": "npm run build",
+        "cwd": "{projectRoot}"
+      },
+      "dependsOn": ["^build"]
+    },
+    "dev": {
+      "executor": "nx:run-commands",
+      "continuous": true,
+      "options": {
+        "command": "npm run dev",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "options": {
+        "command": "npm test",
+        "cwd": "{projectRoot}"
+      }
+    }
+  },
+  "implicitDependencies": ["shared-contracts"],
+  "tags": ["scope:oms", "lang:typescript", "type:app", "bc:ordering"]
+}

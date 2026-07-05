@@ -1,0 +1,54 @@
+---
+# ════════════════════════════════════════════════════════════════════════════
+# argocd role — installs ArgoCD on the control plane
+# After this, ALL subsequent app deployments (Zot, Keycloak, PostgreSQL…)
+# are managed by ArgoCD pointing at this Git repository.
+# ════════════════════════════════════════════════════════════════════════════
+
+- name: Create ArgoCD namespace
+  ansible.builtin.command: >
+    kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
+  become_user: "{{ cluster_user }}"
+  environment:
+    KUBECONFIG: /home/{{ cluster_user }}/.kube/config
+  changed_when: false
+
+- name: Install ArgoCD
+  ansible.builtin.command: >
+    kubectl apply -n argocd -f
+    https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+    --server-side --force-conflicts
+  become_user: "{{ cluster_user }}"
+  environment:
+    KUBECONFIG: /home/{{ cluster_user }}/.kube/config
+  changed_when: true
+
+- name: Wait for ArgoCD server deployment to be Available
+  ansible.builtin.command: >
+    kubectl wait deployment/argocd-server
+    -n argocd --for=condition=Available --timeout=300s
+  become_user: "{{ cluster_user }}"
+  environment:
+    KUBECONFIG: /home/{{ cluster_user }}/.kube/config
+  changed_when: false
+
+- name: Get initial admin password (base64-encoded)
+  ansible.builtin.command: >
+    kubectl get secret argocd-initial-admin-secret
+    -n argocd -o jsonpath='{.data.password}'
+  become_user: "{{ cluster_user }}"
+  environment:
+    KUBECONFIG: /home/{{ cluster_user }}/.kube/config
+  register: argocd_b64_password
+  changed_when: false
+
+- name: Print ArgoCD access information
+  ansible.builtin.debug:
+    msg:
+      - '════════════════════════════════════════════════════'
+      - '  ArgoCD is ready'
+      - '  UI:  kubectl port-forward svc/argocd-server -n argocd 8080:443'
+      - '       then open https://localhost:8080'
+      - '  User: admin'
+      - '  Pass: {{ argocd_b64_password.stdout | b64decode }}'
+      - '════════════════════════════════════════════════════'

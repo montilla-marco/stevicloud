@@ -1,0 +1,21 @@
+# Nx
+.nx/cache
+.nx/workspace-data
+
+# Node
+node_modules/
+dist/
+.turbo/
+
+# Gradle
+.gradle/
+build/
+apps/*/build/
+
+# IDE
+.idea/
+*.iml
+.vscode/settings.json
+
+# OS
+.DS_Store

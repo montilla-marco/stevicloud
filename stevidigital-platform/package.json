@@ -1,0 +1,27 @@
+{
+  "name": "stevidigital-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Stevidigital e-commerce platform — polyglot Nx monorepo (Java/Spring Boot + TypeScript/NestJS).",
+  "scripts": {
+    "graph": "nx graph",
+    "build": "nx run-many -t build",
+    "test": "nx run-many -t test",
+    "test:java": "nx run-many -t test --projects=tag:lang:java",
+    "test:ts": "nx run-many -t test --projects=tag:lang:typescript",
+    "affected:build": "nx affected -t build",
+    "affected:test": "nx affected -t test"
+  },
+  "devDependencies": {
+    "nx": "^23.0.1",
+    "@nx/gradle": "^23.0.1",
+    "@nx/js": "^23.0.1",
+    "@nx/nest": "^23.0.1",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=11.0.0"
+  },
+  "packageManager": "pnpm@11.9.0"
+}
