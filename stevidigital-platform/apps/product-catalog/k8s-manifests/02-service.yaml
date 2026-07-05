@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: product-catalog-svc
+  namespace: product-catalog
+  labels:
+    app: product-catalog
+spec:
+  selector:
+    app: product-catalog
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP
+---
+# NodePort para acceso local durante desarrollo
+apiVersion: v1
+kind: Service
+metadata:
+  name: product-catalog-nodeport
+  namespace: product-catalog
+  labels:
+    app: product-catalog
+spec:
+  selector:
+    app: product-catalog
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      nodePort: 30080
+  type: NodePort
