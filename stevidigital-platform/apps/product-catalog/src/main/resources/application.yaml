@@ -58,7 +58,7 @@ springdoc:
 logging:
   structured:
     format:
-      console: json
+      console: logstash
   level:
     root: INFO
     org.stevidigital: DEBUG
